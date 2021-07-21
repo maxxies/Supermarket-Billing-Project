@@ -316,6 +316,7 @@ class ShopPages{
                         ifstream newFile;
                         newFile.open("complaint.txt",ios_base::in);
                         string text;
+                        cout<<"Customer feedbacks: "<<endl;
                         while(newFile.good()){
                             getline(newFile,text,'\n');
                             cout<<"\n"<<text<<endl;
@@ -331,7 +332,7 @@ class ShopPages{
                         ifstream newFile;
                         newFile.open("complaint.txt",ofstream::out | ofstream::trunc);
                         newFile.close();
-                        cout<<"Complaint messages deleted."<<endl;
+                        cout<<"Feedbacks deleted."<<endl;
                         break;
                         }
                     default:
@@ -346,7 +347,7 @@ class ShopPages{
                 ShopPages::displayItems();
                 //variable to hold number of times a customer wants to shop
                 int purchaseNumber;
-                cout<<"How many purchases do you want to make?"<<endl;
+                cout<<"How many different purchases do you want to make?"<<endl;
                 while(!(cin>>purchaseNumber)){
                     cout<<"An error has occurred.\nEnter a number: "<<endl;
                     cin.clear(); //clears input
@@ -354,15 +355,23 @@ class ShopPages{
                 }
                 for(int i =0; i < purchaseNumber; i++){
                    //Takes the id of desired product
-                    cout<<"Enter the number of product: "<<endl;
+                    cout<<"Enter the ID of the product: "<<endl;
                     int productNumber;
                     while(!(cin>>productNumber)){
                         cout<<"An error has occurred.\nEnter a number: "<<endl;
                         cin.clear(); //clears input
                         cin.ignore(123,'\n'); //discards previous input
                     }
+                    //Clears vectors before extraction
+                    numbers.clear();
+                    names.clear();
+                    prices.clear();
+                    quantities.clear();
+                    discounts.clear();
+                    taxes.clear();
                     //Extracts items ready for modifications after sale
                     ShopPages::extractItems(productNumber);
+
                     // checks if product is available
                     if(productCount == 0){
                         cout<<"Product not available"<<endl;
@@ -396,7 +405,7 @@ class ShopPages{
                             cin.ignore(123,'\n'); //discards previous input
                         }
 
-                        if(quantity < productQuantity){ //comapares available quantity and requested quantity
+                        if(quantity < productQuantity && quantity != 0){ //comapares available quantity and requested quantity
                             //When available quantity is less
                             cout<<"Sorry, requested quantity of product not available"<<endl;
                             cout<<"Would you want the remaining quantity of "<<quantities[position]<<".(Yes/No)"<<endl;
@@ -405,11 +414,16 @@ class ShopPages{
                             getline(cin,response);
                             //Asks if user wants quantity available
                             if(response == "YES" || response == "Y" || response == "y"){
-
+                                //Generates price
                                 string newPrice;
                                 stringstream snp;
-                                snp<<((price*tax)+price)-discount;
+                                snp<<(((price*tax)+price)-discount)*quantity;
                                 newPrice = snp.str();
+                                //Converts the requested quantity to string
+                                string newQuantity;
+                                stringstream nq;
+                                nq<<quantity;
+                                newQuantity = nq.str();
 
                                 ofstream customerInvoice;
                                 customerInvoice.open("invoice.txt", ios_base::app);
@@ -419,13 +433,15 @@ class ShopPages{
                                 customerInvoice<<"------------------------------------------"<<endl;
                                 customerInvoice<<"Items purchased:"<<endl;
                                 customerInvoice<<"    Item:     "+ names[position] +""<<endl;
-                                customerInvoice<<"    Quantity: "+ quantities[position]+""<<endl;
+                                customerInvoice<<"    Quantity: "+ newQuantity +""<<endl;
                                 customerInvoice<<"    Amount:   GHS"+newPrice +""<<endl;
                                 customerInvoice<<"    Tax:      "+taxes[position]+""<<endl;
                                 customerInvoice<<"    Discount: "+discounts[position]+""<<endl;
                                 customerInvoice<<"Thanks for shopping with us......."<<endl;
                                 customerInvoice.close();
+                                //Change the product quantity to 0 after sale
                                 quantities[position] = "0";
+                                //writes to file
                                 ShopPages::writeToFile(1);
 
                                 cout<<"Your invoice has been generated. Proceed to the invoice.txt to claim it. Thank You"<<endl;
@@ -433,11 +449,21 @@ class ShopPages{
                             else{
                                 cout<<"Thanks for shopping with us."<<endl;
                             }
+                        //When the quantity of the product is zero
+                        }else if(quantity == 0){
+                            cout<<"Sorry, product has run down."<<endl;
                         }else{ //When available quantity is more than requested amount
                             string newPrice;
                             stringstream snp;
-                            snp<<((price*tax)+price)-discount;
+                            snp<<(((price*tax)+price)-discount) * productQuantity;
                             newPrice = snp.str();
+
+                            //Converts the requested quantity to string
+                            string newQuantity;
+                            stringstream nq;
+                            nq<<productQuantity;
+                            newQuantity = nq.str();
+
                             ofstream customerInvoice;
                             customerInvoice.open("invoice.txt", ios_base::app);
                             customerInvoice<<" Maxxies Shopping Center."<<endl;
@@ -446,16 +472,19 @@ class ShopPages{
                             customerInvoice<<"------------------------------------------"<<endl;
                             customerInvoice<<"Items purchased:"<<endl;
                             customerInvoice<<"    Item:     "+ names[position] +""<<endl;
-                            customerInvoice<<"    Quantity: "+ quantities[position]+""<<endl;
+                            customerInvoice<<"    Quantity: "+ newQuantity +""<<endl;
                             customerInvoice<<"    Amount:   GHS"+newPrice +""<<endl;
                             customerInvoice<<"    Tax:      "+taxes[position]+""<<endl;
                             customerInvoice<<"    Discount: "+discounts[position]+""<<endl;
                             customerInvoice<<"Thanks for shopping with us......."<<endl;
                             customerInvoice.close();
+                            //sets a new quantity for the product after sales
                             quantity = quantity - productQuantity;
                             stringstream sq;
                             sq<<quantity;
+                            //updates the new quantities
                             quantities[position]=sq.str();
+                            //writes to file
                             ShopPages::writeToFile(1);
 
                             cout<<"Your invoice has been generated. Proceed to the invoice.txt to claim it. Thank You"<<endl;
@@ -481,9 +510,10 @@ class ShopPages{
                 newFile.open("complaint.txt", ios_base::app);
                 newFile<<complaint<<endl;
                 newFile.close();
+                cout<<"Your complaint has been received. Thanks for the feedback."<<endl;
 
             }
-        };
+        }
 
         //function displays items
         void displayItems(){
@@ -510,7 +540,7 @@ class ShopPages{
                 if(number == ""){ //prevents printing same item
                     continue;
                 }else{
-                    cout<<left<<setw(10)<<"Number :    "<<number<<"\n";
+                    cout<<left<<setw(10)<<"ID :        "<<number<<"\n";
                     cout<<left<<setw(10)<<"Name :      "<<name<<"\n";
                     cout<<left<<setw(10)<<"Price :     GHS "<<price<<"\n";
                     cout<<left<<setw(10)<<"Quantity :  "<<quantity<<"\n";
@@ -674,10 +704,10 @@ class ShopPages{
         void writeToFile(int x){
             //writes new items into the item file
             ofstream newFile;
-            newFile.open("product_menu.csv", ios_base::out);
+            newFile.open("product_menu.csv", ios_base::trunc);
             if(x == 1){                    //writes for a modified product so not to add excess
                 for(int i = 0; i < numbers.size()-1;i++){
-                    if(numbers[i] == " "){
+                    if(numbers[i] == ""){
                         continue;
                     }else{
                         newFile<<
